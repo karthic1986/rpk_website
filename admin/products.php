@@ -391,9 +391,7 @@ if (isset($_GET['edit'])) {
                                         <th>Image</th>
                                         <th>Name</th>
                                         <th>Category</th>
-                                        <th>Price</th>
                                         <th>Short Description</th>
-                                        <th>Description</th>
                                         <th>Sort Order</th>
                                         <th>Status</th>
                                         <th>Modified At</th>
@@ -413,9 +411,7 @@ if (isset($_GET['edit'])) {
                                         </td>
                                         <td><?php echo htmlspecialchars($product['name']); ?></td>
                                         <td><?php echo htmlspecialchars($product['category_name']); ?></td>
-                                        <td>$<?php echo number_format($product['price'], 2); ?></td>
                                         <td><?php echo htmlspecialchars($product['short_description']); ?></td>
-                                        <td><?php echo htmlspecialchars($product['description']); ?></td>
                                         <td><?php echo htmlspecialchars($product['sort_order']); ?></td>
                                         <td>
                                             <span class="badge <?php echo $product['status'] ? 'bg-success' : 'bg-danger'; ?>">

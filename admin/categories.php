@@ -342,7 +342,6 @@ if (isset($_GET['edit'])) {
                                     <tr>
                                         <th>ID</th>
                                         <th>Name</th>
-                                        <th>Description</th>
                                         <th>Sort Order</th>
                                         <th>Status</th>
                                         <th>Modified At</th>
@@ -355,7 +354,6 @@ if (isset($_GET['edit'])) {
                                     <tr>
                                         <td><?php echo $category['id']; ?></td>
                                         <td><?php echo htmlspecialchars($category['name']); ?></td>
-                                        <td><?php echo htmlspecialchars($category['description']); ?></td>
                                         <td><?php echo htmlspecialchars($category['sort_order']); ?></td>
                                         <td>
                                             <span class="badge <?php echo $category['status'] ? 'bg-success' : 'bg-danger'; ?>">
