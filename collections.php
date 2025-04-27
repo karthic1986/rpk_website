@@ -282,26 +282,34 @@ try {
             margin-top: 0.2rem;
         }
         .subcategory-link {
-            display: block;
-            color: #666;
+            color: #343a40 !important;
             font-size: 1rem;
             padding: 0.38rem 0.8rem;
             text-decoration: none;
             border-radius: 8px;
             margin-bottom: 0.1rem;
             font-weight: 400;
+            background: none;
             transition: background 0.15s, color 0.15s;
         }
-        .subcategory-link.active, .subcategory-link:hover {
-            background: #f5f5f7;
-            color: #111;
-            font-weight: 500;
+        .subcategory-link.active,
+        .subcategory-link:hover {
+            color: #222 !important;      /* Sub-category: dark and bold on hover/active */
+            font-weight: 600;
+            /* background: #f5f5f7; */
         }
         .category-row a {
-            color: inherit;
+            color: #222 !important;      /* Main category: dark */
+            font-weight: 500;
             text-decoration: none;
             flex: 1;
             text-align: left;
+            background: none;
+        }
+        .category-row.active a,
+        .category-row:hover a {
+            color: #111 !important;      /* Main category: even darker on active/hover */
+            font-weight: 600;
         }
         @media (max-width: 900px) {
             .categories-tree {
@@ -362,12 +370,11 @@ try {
     <!-- Header Section End -->
 
     <!-- Breadcrumb Section Begin -->
-    <section class="breadcrumb-option">
+    <!-- <section class="breadcrumb-option">
       <div class="container">
         <div class="row">
           <div class="col-lg-12">
             <div class="breadcrumb__text">
-              <h4>Collections</h4>
               <div class="breadcrumb__links">
                 <a href="./index.php">Home</a>
                 <span>Collections</span>
@@ -376,7 +383,7 @@ try {
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
     <!-- Breadcrumb Section End -->
 
     <!-- Shop Section Begin -->
