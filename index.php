@@ -71,7 +71,7 @@ try {
           <div class="col-lg-7 col-md-7">
             <nav class="header__menu mobile-menu">
               <ul>
-                <li class="active"><a href="./index.php">Home</a></li>
+                <li class="active"><a href="./index.php">Home test</a></li>
                 <li><a href="./collections.php">Collections</a></li>
                 <li><a href="./contact.php">Contact Us</a></li>
               </ul>
