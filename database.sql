@@ -20,6 +20,18 @@ CREATE TABLE IF NOT EXISTS categories (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Subcategories table
+CREATE TABLE IF NOT EXISTS subcategories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    category_id INT NOT NULL,
+    status TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
 -- Products table
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -30,7 +42,9 @@ CREATE TABLE products (
     main_image VARCHAR(255),
     image2 VARCHAR(255),
     image3 VARCHAR(255),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    subcategory_id INT,
+    FOREIGN KEY (category_id) REFERENCES categories(id),
+    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
 );
 
 -- Insert default admin user

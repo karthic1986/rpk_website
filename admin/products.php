@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 require_once '../config/database.php';
 
@@ -7,6 +10,10 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
     header('Location: login.php');
     exit;
 }
+
+// Fetch all categories and sub-categories
+$categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll();
+$sub_categories = $pdo->query("SELECT sc.*, c.name as category_name FROM sub_categories sc LEFT JOIN categories c ON sc.category_id = c.id ORDER BY c.name, sc.name")->fetchAll();
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,14 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $image3 = uploadImage($_FILES['image3']);
                     }
 
-                    $stmt = $pdo->prepare("INSERT INTO products (name, description, short_description, price, category_id, main_image, image2, image3, sort_order, status, created_by) 
+                    $stmt = $pdo->prepare("INSERT INTO products (name, description, short_description, price, sub_category_id, main_image, image2, image3, sort_order, status, created_by) 
                                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $result = $stmt->execute([
                         $_POST['name'],
                         $_POST['description'],
                         $_POST['short_description'],
                         $_POST['price'],
-                        $_POST['category_id'],
+                        $_POST['sub_category_id'],
                         $main_image,
                         $image2,
                         $image3,
@@ -75,14 +82,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $stmt = $pdo->prepare("UPDATE products SET name = ?, description = ?, short_description = ?, price = ?, 
-                                         category_id = ?, main_image = ?, image2 = ?, image3 = ?, sort_order = ?, 
+                                         sub_category_id = ?, main_image = ?, image2 = ?, image3 = ?, sort_order = ?, 
                                          status = ?, modified_by = ? WHERE id = ?");
                     $stmt->execute([
                         $_POST['name'],
                         $_POST['description'],
                         $_POST['short_description'],
                         $_POST['price'],
-                        $_POST['category_id'],
+                        $_POST['sub_category_id'],
                         $main_image,
                         $image2,
                         $image3,
@@ -152,16 +159,14 @@ function uploadImage($file) {
     }
 }
 
-// Get all products with category names
+// Get all products with sub-category and category names
 $products = $pdo->query("
-    SELECT p.*, c.name as category_name 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id 
+    SELECT p.*, sc.name as sub_category_name, c.name as category_name
+    FROM products p
+    LEFT JOIN sub_categories sc ON p.sub_category_id = sc.id
+    LEFT JOIN categories c ON sc.category_id = c.id
     ORDER BY p.name
 ")->fetchAll();
-
-// Get all categories for dropdown
-$categories = $pdo->query("SELECT * FROM categories ORDER BY name")->fetchAll();
 
 // Get product for editing if specified
 $edit_product = null;
@@ -178,176 +183,14 @@ if (isset($_GET['edit'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Products - RPK Textiles</title>
     <link rel="stylesheet" href="../css/bootstrap.min.css">
-    <link rel="stylesheet" href="../css/style.css">
-    <style>
-        :root {
-            --primary-color: #4e73df;
-            --secondary-color: #858796;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --light-color: #f8f9fc;
-            --dark-color: #5a5c69;
-        }
-        
-        body {
-            background-color: #f8f9fc;
-            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, var(--primary-color) 0%, #224abe 100%);
-            padding-top: 20px;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .sidebar h4 {
-            color: white;
-            padding: 0 1rem;
-            font-weight: 800;
-            font-size: 1.2rem;
-        }
-        
-        .sidebar a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            padding: 0.8rem 1rem;
-            display: block;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .sidebar a:hover, .sidebar a.active {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .main-content {
-            padding: 2rem;
-        }
-        
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--dark-color);
-            margin-bottom: 1.5rem;
-        }
-        
-        .card {
-            border: none;
-            border-radius: 0.35rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            margin-bottom: 1.5rem;
-        }
-        
-        .card-header {
-            background-color: #f8f9fc;
-            border-bottom: 1px solid #e3e6f0;
-            padding: 1rem 1.25rem;
-            font-weight: 700;
-        }
-        
-        .table {
-            margin-bottom: 0;
-        }
-        
-        .table th {
-            border-top: none;
-            font-weight: 700;
-            color: var(--dark-color);
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2e59d9;
-            border-color: #2653d4;
-        }
-        
-        .btn-warning {
-            background-color: var(--warning-color);
-            border-color: var(--warning-color);
-            color: white;
-        }
-        
-        .btn-danger {
-            background-color: var(--danger-color);
-            border-color: var(--danger-color);
-        }
-        
-        .modal-content {
-            border: none;
-            border-radius: 0.35rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .modal-header {
-            background-color: #f8f9fc;
-            border-bottom: 1px solid #e3e6f0;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
-        }
-        
-        .alert {
-            border: none;
-            border-radius: 0.35rem;
-        }
-        
-        .product-image {
-            max-width: 100px;
-            max-height: 100px;
-            object-fit: cover;
-            border-radius: 0.35rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .stat-card {
-            background-color: white;
-            border-radius: 0.35rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .stat-card h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-card p {
-            color: var(--secondary-color);
-            margin-bottom: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <h4 class="mb-4">RPK Textiles</h4>
-                <nav>
-                    <a href="dashboard.php">Dashboard</a>
-                    <a href="categories.php">Categories</a>
-                    <a href="products.php" class="active">Products</a>
-                    <a href="logout.php">Logout</a>
-                </nav>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
+            <?php include 'components/sidebar.php'; ?>
+            <div class="main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="page-title">Manage Products</h1>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
@@ -391,6 +234,7 @@ if (isset($_GET['edit'])) {
                                         <th>Image</th>
                                         <th>Name</th>
                                         <th>Category</th>
+                                        <th>Sub-Category</th>
                                         <th>Short Description</th>
                                         <th>Sort Order</th>
                                         <th>Status</th>
@@ -411,6 +255,7 @@ if (isset($_GET['edit'])) {
                                         </td>
                                         <td><?php echo htmlspecialchars($product['name']); ?></td>
                                         <td><?php echo htmlspecialchars($product['category_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($product['sub_category_name']); ?></td>
                                         <td><?php echo htmlspecialchars($product['short_description']); ?></td>
                                         <td><?php echo htmlspecialchars($product['sort_order']); ?></td>
                                         <td>
@@ -486,6 +331,15 @@ if (isset($_GET['edit'])) {
                                     </select>
                                 </div>
                                 <div class="mb-3">
+                                    <label for="sub_category_id" class="form-label">Sub-Category</label>
+                                    <select class="form-select" id="sub_category_id" name="sub_category_id" required>
+                                        <option value="">Select Sub-Category</option>
+                                        <?php foreach ($sub_categories as $sub): ?>
+                                            <option value="<?php echo $sub['id']; ?>" data-category="<?php echo $sub['category_id']; ?>" <?php echo ($edit_product && $edit_product['sub_category_id'] == $sub['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($sub['name']); ?> (<?php echo htmlspecialchars($sub['category_name']); ?>)</option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
                                     <label for="price" class="form-label">Price</label>
                                     <input type="number" step="0.01" class="form-control" id="price" name="price" 
                                            value="<?php echo $edit_product ? $edit_product['price'] : ''; ?>" required>
@@ -548,6 +402,26 @@ if (isset($_GET['edit'])) {
     </div>
 
     <script src="../js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Filter sub-categories by selected category
+    document.addEventListener('DOMContentLoaded', function() {
+        var categorySelect = document.getElementById('category_id');
+        var subCategorySelect = document.getElementById('sub_category_id');
+        function filterSubCategories() {
+            var selectedCategory = categorySelect.value;
+            Array.from(subCategorySelect.options).forEach(function(option) {
+                if (!option.value) return; // skip placeholder
+                option.style.display = (option.getAttribute('data-category') === selectedCategory) ? '' : 'none';
+            });
+            // If current selected sub-category doesn't match, reset
+            if (subCategorySelect.selectedOptions.length && subCategorySelect.selectedOptions[0].style.display === 'none') {
+                subCategorySelect.value = '';
+            }
+        }
+        categorySelect.addEventListener('change', filterSubCategories);
+        filterSubCategories(); // initial
+    });
+    </script>
     <?php if ($edit_product): ?>
     <script>
         document.addEventListener('DOMContentLoaded', function() {

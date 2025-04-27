@@ -11,11 +11,38 @@ try {
 
 // Get selected category (default to first category if none selected)
 $selected_category_id = isset($_GET['category']) ? (int)$_GET['category'] : ($categories[0]['id'] ?? null);
+$selected_subcategory_id = isset($_GET['subcategory']) ? (int)$_GET['subcategory'] : null;
 
-// Get products for selected category
+// Get all sub-categories and group by category_id
 try {
-    if ($selected_category_id) {
-        $stmt = $pdo->prepare("SELECT * FROM products WHERE category_id = ? AND status = 1 ORDER BY sort_order, name");
+    $all_subcategories = $pdo->query("SELECT * FROM sub_categories WHERE status = 1 ORDER BY sort_order, name")->fetchAll();
+    $subcategories_by_category = [];
+    foreach ($all_subcategories as $subcat) {
+        $subcategories_by_category[$subcat['category_id']][] = $subcat;
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching subcategories: " . $e->getMessage());
+    $subcategories_by_category = [];
+}
+
+// Get products for selected category/subcategory
+try {
+    if ($selected_subcategory_id) {
+        $stmt = $pdo->prepare("SELECT p.*, sc.name as subcategory_name, c.name as category_name 
+                              FROM products p 
+                              LEFT JOIN sub_categories sc ON p.sub_category_id = sc.id 
+                              LEFT JOIN categories c ON sc.category_id = c.id 
+                              WHERE p.sub_category_id = ? AND p.status = 1 
+                              ORDER BY p.sort_order, p.name");
+        $stmt->execute([$selected_subcategory_id]);
+        $products = $stmt->fetchAll();
+    } elseif ($selected_category_id) {
+        $stmt = $pdo->prepare("SELECT p.*, sc.name as subcategory_name, c.name as category_name 
+                              FROM products p 
+                              LEFT JOIN sub_categories sc ON p.sub_category_id = sc.id 
+                              LEFT JOIN categories c ON sc.category_id = c.id 
+                              WHERE p.category_id = ? AND p.status = 1 
+                              ORDER BY p.sort_order, p.name");
         $stmt->execute([$selected_category_id]);
         $products = $stmt->fetchAll();
     } else {
@@ -80,12 +107,37 @@ try {
 
         .shop__sidebar__categories li {
             margin-bottom: 0.5rem;
+            position: relative;
+        }
+
+        .category-toggle {
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .category-toggle .arrow {
+            display: inline-block;
+            margin-right: 0.5rem;
+            transition: transform 0.2s;
+        }
+        .category-toggle.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+        .subcategories {
+            list-style: none;
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        .subcategories.expanded {
+            display: block;
         }
 
         .shop__sidebar__categories a {
-            color: var(--dark-color);
+            /* color: var(--dark-color); */
             text-decoration: none;
-            padding: 0.5rem 1rem;
+            /* padding: 0.5rem 1rem; */
             display: block;
             border-radius: 0.35rem;
             transition: all 0.3s;
@@ -93,6 +145,30 @@ try {
 
         .shop__sidebar__categories a:hover,
         .shop__sidebar__categories a.active {
+            /* background-color: var(--primary-color); */
+            color: #111111;
+        }
+
+        .shop__sidebar__categories .subcategories {
+            list-style: none;
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .shop__sidebar__categories .subcategories li {
+            margin-bottom: 0.25rem;
+        }
+
+        .shop__sidebar__categories .subcategories a {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.75rem;
+            display: block;
+            border-radius: 0.25rem;
+            background-color: rgba(78, 115, 223, 0.1);
+        }
+
+        .shop__sidebar__categories .subcategories a:hover,
+        .shop__sidebar__categories .subcategories a.active {
             background-color: var(--primary-color);
             color: white;
         }
@@ -160,6 +236,89 @@ try {
 
         .breadcrumb__links span {
             color: var(--secondary-color);
+        }
+
+        .categories-tree {
+            background: #fff;
+            border-radius: 18px;
+            margin-bottom: 2rem;
+            /* min-width: 250px; */
+        }
+        .categories-tree-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.01em;
+        }
+        .category-row {
+            display: flex;
+            align-items: center;
+           
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-size: 1.08rem;
+            font-weight: 500;
+            background: #fff;
+            color: #222;
+            transition: background 0.15s, color 0.15s;
+        }
+        .category-row.active, .category-row:hover {
+            /* background: #f5f5f7; */
+            color: #111;
+            font-weight: 600;
+        }
+        .category-arrow {
+            margin-left: auto;
+            font-size: 1.1rem;
+            transition: transform 0.2s;
+            color: #bbb;
+        }
+        .category-row.collapsed .category-arrow {
+            transform: rotate(-90deg);
+        }
+        .subcategories-list {
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            margin-top: 0.2rem;
+        }
+        .subcategory-link {
+            display: block;
+            color: #666;
+            font-size: 1rem;
+            padding: 0.38rem 0.8rem;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 0.1rem;
+            font-weight: 400;
+            transition: background 0.15s, color 0.15s;
+        }
+        .subcategory-link.active, .subcategory-link:hover {
+            background: #f5f5f7;
+            color: #111;
+            font-weight: 500;
+        }
+        .category-row a {
+            color: inherit;
+            text-decoration: none;
+            flex: 1;
+            text-align: left;
+        }
+        @media (max-width: 900px) {
+            .categories-tree {
+                min-width: 100%;
+                margin-bottom: 1rem;
+                padding: 1.2rem 0.5rem;
+            }
+        }
+        .categories-tree ul li {
+            border-bottom: 1px solid #ececec;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .categories-tree ul li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
         }
     </style>
   </head>
@@ -234,14 +393,29 @@ try {
                     </div>
                     <div id="collapseOne" class="collapse show" data-parent="#accordionExample">
                       <div class="card-body">
-                        <div class="shop__sidebar__categories">
-                          <ul class="nice-scroll">
+                        <div class="shop__sidebar__categories categories-tree">
+                          <ul class="nice-scroll" style="padding:0; margin:0;">
                             <?php foreach ($categories as $category): ?>
-                            <li>
-                              <a href="?category=<?php echo $category['id']; ?>" 
-                                 class="<?php echo $selected_category_id == $category['id'] ? 'active' : ''; ?>">
-                                <?php echo htmlspecialchars($category['name']); ?>
-                              </a>
+                            <li style="list-style:none;">
+                              <div class="category-row<?php echo ($selected_category_id == $category['id']) ? ' active' : ' collapsed'; ?>" data-category-id="<?php echo $category['id']; ?>">
+                                <a href="?category=<?php echo $category['id']; ?>" class="<?php echo $selected_category_id == $category['id'] ? 'active' : ''; ?>">
+                                  <?php echo htmlspecialchars($category['name']); ?>
+                                </a>
+                                <?php if (!empty($subcategories_by_category[$category['id']])): ?>
+                                  <span class="category-arrow"><i class="fa fa-chevron-down"></i></span>
+                                <?php endif; ?>
+                              </div>
+                              <?php if (!empty($subcategories_by_category[$category['id']])): ?>
+                                <ul class="subcategories-list" id="subcat-<?php echo $category['id']; ?>" style="<?php echo ($selected_category_id == $category['id']) ? 'display:block;' : 'display:none;'; ?>">
+                                  <?php foreach ($subcategories_by_category[$category['id']] as $subcategory): ?>
+                                    <li style="list-style:none;">
+                                      <a href="?category=<?php echo $category['id']; ?>&subcategory=<?php echo $subcategory['id']; ?>" class="subcategory-link<?php echo $selected_subcategory_id == $subcategory['id'] ? ' active' : ''; ?>">
+                                        <?php echo htmlspecialchars($subcategory['name']); ?>
+                                      </a>
+                                    </li>
+                                  <?php endforeach; ?>
+                                </ul>
+                              <?php endif; ?>
                             </li>
                             <?php endforeach; ?>
                           </ul>
@@ -369,5 +543,26 @@ try {
     <script src="js/mixitup.min.js"></script>
     <script src="js/owl.carousel.min.js"></script>
     <script src="js/main.js"></script>
+    <script>
+      // Only one category expanded at a time
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.category-row').forEach(function(row) {
+          row.addEventListener('click', function(e) {
+            // Only toggle if not clicking the link itself
+            if (e.target.tagName.toLowerCase() === 'a') return;
+            var catId = this.getAttribute('data-category-id');
+            var subcatList = document.getElementById('subcat-' + catId);
+            // Collapse all
+            document.querySelectorAll('.subcategories-list').forEach(function(list) { list.style.display = 'none'; });
+            document.querySelectorAll('.category-row').forEach(function(r) { r.classList.add('collapsed'); });
+            // Expand this one
+            if (subcatList) {
+              subcatList.style.display = 'block';
+              this.classList.remove('collapsed');
+            }
+          });
+        });
+      });
+    </script>
   </body>
 </html> 
